@@ -1,5 +1,5 @@
 import * as t from 'babel-types'
-import { useFileName, useDisplayName, useSSR } from '../utils/options'
+import { useFileName, useDisplayName, useSSR, getCustomNameGenerator } from '../utils/options'
 import getName from '../utils/getName'
 import path from 'path'
 import fs from 'fs'
@@ -33,11 +33,17 @@ const addConfig = (path, displayName, componentId) => {
 }
 
 const getDisplayName = (path, state) => {
-  const { file } = state
   const componentName = getName(path)
-  if (file) {
+  const customNameGenerator = getCustomNameGenerator(state);
+  if (useFileName(state)) {
+    const { file } = state
+    if (customNameGenerator) return customNameGenerator({
+      componentName,
+      fileName: blockName(file)
+    });
     return componentName ? `${blockName(file)}__${componentName}` : blockName(file)
   } else {
+    if (customNameGenerator) return customNameGenerator({ componentName });
     return componentName
   }
 }
@@ -92,7 +98,7 @@ export default (path, state) => {
   if (isStyled(path.node.tag, state)) {
     addConfig(
       path,
-      useDisplayName(state) && getDisplayName(path, useFileName(state) && state),
+      useDisplayName(state) && getDisplayName(path, state),
       useSSR(state) && getComponentId(state)
     )
   }
